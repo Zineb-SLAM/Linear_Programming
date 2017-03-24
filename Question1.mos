@@ -1,0 +1,87 @@
+! Model by Bin YU & Zineb SLAM
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!optional parameters section
+parameters
+!  SAMPLEPARAM1="c:\test\"
+!  SAMPLEPARAM2=false
+   PROJECTDIR='' ! for when file is added to project
+end-parameters
+
+!sample declarations section
+declarations
+ Nodes = 1..7 	 ! Range distance of client/nodes
+ DIST: array(Nodes, Nodes) of real  ! Distance between each pair of nodes
+ SERVE: array(Nodes, Nodes) of mpvar ! true if client served by site
+ SITELIMIT = 2
+ OPENST: array(Nodes) of mpvar ! 1 if site open ; 0 if not
+
+  Objective:linctr
+end-declarations
+
+if PROJECTDIR <> '' then
+  setparam('workdir', PROJECTDIR)
+  writeln("Project directory: " + PROJECTDIR)
+end-if
+
+writeln("Begin running model")
+!...
+ DIST::[0, 1.5, 2.5, 3, 3.8, 2.5, 5,
+	   1.5, 0, 3.5, 6, 2.4, 3.5, 3,
+	   2.5, 3.5, 0, 3, 6.1, 4.5, 5.5,
+	    3, 6, 3, 0, 5.2, 3, 2,
+	   3.8, 2.4, 6.1, 5.2, 0, 5.4, 3.5,
+	   2.5, 3.5, 4.5, 3, 5.4, 0, 2.5,
+	   5, 3, 5.5, 2, 3.5, 2.5, 0]
+ 
+ !**************************** 
+ !		Constraints 
+ !****************************
+ 
+ ! Variables are 0/1
+forall(s in Nodes) OPENST(s) is_binary
+forall(s in Nodes, c in Nodes) SERVE(s,c) is_binary
+
+! Serve each client c by an open site s == Total Coverage
+forall(c in Nodes) 
+		sum(s in Nodes) SERVE(s,c) = 1
+
+! No more than SITELIMIT sites open 
+sum(s in Nodes) OPENST(s) <= SITELIMIT
+
+! We can't SERVE a Client with a non OPENST
+forall(s in Nodes, c in Nodes) SERVE(s,c) <= OPENST(s)
+
+
+! Length of the ADSL Lines for each Site
+Length := sum(s in Nodes, c in Nodes)  DIST(s,c)* SERVE(s,c)
+
+Length >= 0
+!**************************** 
+!		Objective Function
+!****************************
+
+! Solve the problem : Minimize the ADSL Length for a Max Quality & Max Coverage
+minimize (Length)
+
+!**************************** 
+!		Print Solution
+!****************************
+
+! The Opened Sites
+write("Opened Sites\n")
+forall(site in Nodes) write(" open(", site ,"): ", OPENST(site).sol)
+ 
+ ! Clients served by each Site/Node
+ write("\n\nClients served by each Site/Node \n ")
+ forall(site in Nodes, client in Nodes) 
+  if(OPENST(site).sol= 1 AND SERVE(site,client).sol = 1) then
+  	write("Serve(", site ,", ", client ,"): ", SERVE(site,client).sol,"\n ")
+  end-if
+ write("\n    ")
+ 
+ ! Maybe Later : minimize also the number served per node for a better quality ... 
+ 
+writeln("End running model")
+end-model

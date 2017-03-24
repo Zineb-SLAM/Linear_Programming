@@ -1,0 +1,14 @@
+Begin running model
+Opened Sites
+ open(1): 0 open(2): 1 open(3): 0 open(4): 0 open(5): 0 open(6): 0 open(7): 1
+
+Clients served by each Site/Node 
+ Serve(2, 1): 1
+ Serve(2, 2): 1
+ Serve(2, 3): 1
+ Serve(2, 5): 1
+ Serve(7, 4): 1
+ Serve(7, 6): 1
+ Serve(7, 7): 1
+ 
+    End running model
